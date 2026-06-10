@@ -21,6 +21,9 @@ checkInstalledEmus(){
 	if $doInstallRyujinx; then
 		emuList+=("Ryujinx")
 	fi
+	if $doInstallEden; then
+		emuList+=("Eden")
+	fi
 	if $doInstallPrimeHack; then
 		emuList+=("Primehack")
 	fi

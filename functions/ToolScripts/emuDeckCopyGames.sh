@@ -27,6 +27,7 @@ CreateStructureUSB(){
 		echo  "Playstation 3 / RPCS3 -> Download it from https://www.playstation.com/en-us/support/hardware/ps3/system-software/" >> "$destination/bios/readme.txt"
 		echo  "Dreamcast / RetroArch -> bios/dc" >> "$destination/bios/readme.txt"
 		echo  "Switch / Yuzu -> bios/yuzu/firmware and bios/yuzu/keys" >> "$destination/bios/readme.txt"
+		echo  "Switch / Eden -> bios/eden/firmware and bios/eden/keys" >> "$destination/bios/readme.txt"
 		echo  "Those are the only mandatory bios, the rest are optional" >> "$destination/bios/readme.txt"
 
 		rsync -ravL --ignore-existing --exclude='*.txt' "$emudeckBackend/roms/" "$destination/roms/" && echo "true" || echo "false"

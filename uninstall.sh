@@ -9,6 +9,7 @@ doUninstallCemuNative=true
 doUninstallCitra=true
 doUninstallDolphin=true
 doUninstallDuck=true
+doUninstallEden=true
 doUninstallESDE=true
 doUninstallFlycast=true
 doUninstallAzahar=true
@@ -314,7 +315,8 @@ fi
 				24 "Vita3K"  \
 				25 "Xemu" \
 				26 "Xenia"  \
-				27 "Yuzu" )
+				27 "Yuzu" \
+				28 "Eden" )
 
 	ans=$?
 
@@ -340,6 +342,9 @@ fi
 		fi
 		if [[ "$emusToUninstall" == *"Duckstation"* ]]; then
 			doUninstallDuck=false
+		fi
+		if [[ "$emusToUninstall" == *"Eden"* ]]; then
+			doUninstallEden=false
 		fi
 		if [[ "$emusToUninstall" == *"Flycast"* ]]; then
 			doUninstallFlycast=false
@@ -573,6 +578,14 @@ fi
 		rm -rf $HOME/.local/share/yuzu &> /dev/null
 		rm -rf $HOME/.cache/yuzu &> /dev/null
 		rm -rf $HOME/.local/share/applications/yuzu.desktop &> /dev/null
+	fi
+	if [[ "$doUninstallEden" == true ]]; then
+		rm -rf $emusFolder/Eden*.AppImage &> /dev/null
+		rm -rf $emusFolder/eden*.AppImage &> /dev/null
+		rm -rf $HOME/.config/eden &> /dev/null
+		rm -rf $HOME/.local/share/eden &> /dev/null
+		rm -rf $HOME/.cache/eden &> /dev/null
+		rm -rf $HOME/.local/share/applications/eden.desktop &> /dev/null
 	fi
 
 

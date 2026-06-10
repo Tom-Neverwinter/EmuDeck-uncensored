@@ -8,6 +8,7 @@ createFolders(){
 	mkdir -p "$romsPath"
 	mkdir -p "$storagePath"
 	mkdir -p "$biosPath"/yuzu
+	mkdir -p "$biosPath"/eden
 	mkdir -p "$biosPath"/HdPacks
 	mkdir -p "$biosPath"/Mupen64plus/cache
 	mkdir -p "$emulationPath"/hdpacks

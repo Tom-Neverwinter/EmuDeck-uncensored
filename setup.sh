@@ -177,6 +177,7 @@ for install_command in \
 	"$doInstallares ares_install" \
 	"$doInstallPPSSPP PPSSPP_install" \
 	"$doInstallYuzu Yuzu_install" \
+	"$doInstallEden Eden_install" \
 	"$doInstallSuyu suyu_install" \
 	"$doInstallRyujinx Ryujinx_install" \
 	"$doInstallMAME MAME_install" \
@@ -229,6 +230,7 @@ for setup_command in \
 	"$doSetupDuck DuckStation_init" \
 	"$doSetupYuzu Yuzu_init" \
 	"$doSetupCitron Citron_init" \
+	"$doSetupEden Eden_init" \
 	"$doSetupRyujinx Ryujinx_init" \
 	"$doSetupShadPS4 ShadPS4_init" \
 	"$doSetupPPSSPP PPSSPP_init" \

@@ -234,7 +234,7 @@ function updateOrAppendConfigLine(){
 	mkdir -p "$fullPath"
 	touch "$configFile"
 
-	local optionFound=$(grep -rnw  "$configFile" -e "$option")
+	local optionFound=$(grep -Fn -- "$option" "$configFile")
 	if [[ "$optionFound" == '' ]]; then
 		echo "appending: $replacement to $configFile"
 		echo "$replacement" >> "$configFile"
@@ -276,6 +276,7 @@ function createUpdateSettingsFile(){
 	#defaultSettingsList+=("doSetupPCSX2=true")
 	defaultSettingsList+=("doSetupRPCS3=true")
 	defaultSettingsList+=("doSetupYuzu=true")
+	defaultSettingsList+=("doSetupEden=true")
 	defaultSettingsList+=("doSetupDuck=true")
 	defaultSettingsList+=("doSetupCemu=true")
 	defaultSettingsList+=("doSetupXenia=false")
@@ -306,6 +307,7 @@ function createUpdateSettingsFile(){
 	defaultSettingsList+=("doInstallRyujinx=true")
 	defaultSettingsList+=("doInstallRPCS3=true")
 	defaultSettingsList+=("doInstallYuzu=true")
+	defaultSettingsList+=("doInstallEden=false")
 	defaultSettingsList+=("doInstallDuck=true")
 	defaultSettingsList+=("doInstallCemu=true")
 	defaultSettingsList+=("doInstallXenia=true")
@@ -331,6 +333,7 @@ function createUpdateSettingsFile(){
 	defaultSettingsList+=("DreamcastWide=false")
 	defaultSettingsList+=("BeetleWide=false")
 	defaultSettingsList+=("pcsx2QTWide=false")
+	defaultSettingsList+=("edenResolution=720P")
 	defaultSettingsList+=("emulationPath=$HOME/Emulation")
 	defaultSettingsList+=("romsPath=$HOME/Emulation/roms")
 	defaultSettingsList+=("toolsPath=$HOME/Emulation/tools")
@@ -881,6 +884,7 @@ setResolutions(){
 	Xemu_setResolution
 	Xenia_setResolution
 	Yuzu_setResolution
+	Eden_setResolution
 }
 
 # get variable value from kvp-style config file
@@ -1120,8 +1124,9 @@ function controllerLayout_ABXY(){
  	melonDS_setABXYstyle
 	RetroArch_setABXYstyle
 	RMG_setABXYstyle
- 	Ryujinx_setABXYstyle
+	Ryujinx_setABXYstyle
 	Yuzu_setABXYstyle
+	Eden_setABXYstyle
 }
 
 function controllerLayout_BAYX(){
@@ -1133,6 +1138,7 @@ function controllerLayout_BAYX(){
 	RMG_setBAYXstyle
 	Ryujinx_setBAYXstyle
 	Yuzu_setBAYXstyle
+	Eden_setBAYXstyle
 }
 
 function server_install(){
@@ -1228,6 +1234,7 @@ function flushAllLaunchers(){
 		"$doSetupAzahar Azahar_flushEmulatorLauncher" \
 		"$doSetupDuck DuckStation_flushEmulatorLauncher" \
 		"$doSetupYuzu Yuzu_flushEmulatorLauncher" \
+		"$doSetupEden Eden_flushEmulatorLauncher" \
 		"$doSetupRyujinx Ryujinx_flushEmulatorLauncher" \
 		"$doSetupShadPS4 ShadPS4_flushEmulatorLauncher" \
 		"$doSetupPPSSPP PPSSPP_flushEmulatorLauncher" \
