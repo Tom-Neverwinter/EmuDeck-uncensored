@@ -263,6 +263,33 @@ function getSetting(){
 	cut -d "=" -f2 <<< "$(grep -r "^${setting}=" "$emuDecksettingsFile")"
 }
 
+function Switch_setupYuzuFamilySharedStorage(){
+	local emu="$1"
+	local emuNand="${storagePath}/${emu}/nand"
+	local sharedSwitchStorage="${storagePath}/switch"
+	local sharedUserContents="${sharedSwitchStorage}/nand/user/Contents"
+	local sharedFirmware="${sharedSwitchStorage}/nand/system/Contents/registered"
+
+	mkdir -p "${sharedSwitchStorage}/load"
+	mkdir -p "${sharedSwitchStorage}/sdmc"
+	mkdir -p "$sharedUserContents"
+	mkdir -p "$sharedFirmware"
+	mkdir -p "${emuNand}/user"
+	mkdir -p "${emuNand}/system/Contents"
+
+	if [ -d "${emuNand}/user/Contents" ] && [ ! -L "${emuNand}/user/Contents" ]; then
+		rsync -a "${emuNand}/user/Contents/" "$sharedUserContents/"
+		rm -rf "${emuNand}/user/Contents"
+	fi
+	ln -sfn "$sharedUserContents" "${emuNand}/user/Contents"
+
+	if [ -d "${emuNand}/system/Contents/registered" ] && [ ! -L "${emuNand}/system/Contents/registered" ]; then
+		rsync -a "${emuNand}/system/Contents/registered/" "$sharedFirmware/"
+		rm -rf "${emuNand}/system/Contents/registered"
+	fi
+	ln -sfn "$sharedFirmware" "${emuNand}/system/Contents/registered"
+}
+
 function createUpdateSettingsFile(){
 	#!/bin/bash
 

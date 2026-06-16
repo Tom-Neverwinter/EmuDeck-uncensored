@@ -195,10 +195,21 @@ Ryujinx_setupStorage(){
     echo "Begin Ryujinx storage config"
 
     local origPath="$HOME/.config/"
-    mkdir -p "${storagePath}/ryujinx/patchesAndDlc"
-    rsync -av "${origPath}/Ryujinx/games/" "${storagePath}/ryujinx/games/" && rm -rf "${origPath}Ryujinx/games"
-    unlink "${origPath}/Ryujinx/games"
-    ln -ns "${storagePath}/ryujinx/games/" "${origPath}/Ryujinx/games"
+    local sharedPatchesAndDlc="${storagePath}/switch/patchesAndDlc"
+    mkdir -p "${storagePath}/ryujinx"
+    mkdir -p "$sharedPatchesAndDlc"
+    if [ -d "${storagePath}/ryujinx/patchesAndDlc" ] && [ ! -L "${storagePath}/ryujinx/patchesAndDlc" ]; then
+        rsync -a "${storagePath}/ryujinx/patchesAndDlc/" "$sharedPatchesAndDlc/"
+        rm -rf "${storagePath}/ryujinx/patchesAndDlc"
+    fi
+    ln -sfn "$sharedPatchesAndDlc" "${storagePath}/ryujinx/patchesAndDlc"
+    mkdir -p "${origPath}/Ryujinx"
+    mkdir -p "${storagePath}/ryujinx/games"
+    if [ -d "${origPath}/Ryujinx/games" ] && [ ! -L "${origPath}/Ryujinx/games" ]; then
+        rsync -av "${origPath}/Ryujinx/games/" "${storagePath}/ryujinx/games/" && rm -rf "${origPath}/Ryujinx/games"
+    fi
+    unlink "${origPath}/Ryujinx/games" 2>/dev/null
+    ln -sfn "${storagePath}/ryujinx/games/" "${origPath}/Ryujinx/games"
 }
 
 #WipeSettings
@@ -236,7 +247,7 @@ Ryujinx_migrate(){
 
     Ryujinx_setupStorage
     rsync -av "${origPath}/Ryujinx/games" "${storagePath}/ryujinx/games" && rm -rf "${origPath}/Ryujinx/games"
-    ln -s "${storagePath}/ryujinx/games" "${origPath}/ryujinx/games"  #may want to unlink this before hand?
+    ln -sfn "${storagePath}/ryujinx/games" "${origPath}/Ryujinx/games"  #may want to unlink this before hand?
 }
 
 Ryujinx_convertFromYuzu(){

@@ -154,9 +154,9 @@ Eden_setEmulationFolder() {
     newScreenshotDirOpt='Screenshots\\screenshot_path='"${storagePath}/eden/screenshots"
     newGameDirOpt='Paths\\gamedirs\\4\\path='"${romsPath}/switch"
     newDumpDirOpt='dump_directory='"${storagePath}/eden/dump"
-    newLoadDir='load_directory='"${storagePath}/eden/load"
+    newLoadDir='load_directory='"${storagePath}/switch/load"
     newNandDirOpt='nand_directory='"${storagePath}/eden/nand"
-    newSdmcDirOpt='sdmc_directory='"${storagePath}/eden/sdmc"
+    newSdmcDirOpt='sdmc_directory='"${storagePath}/switch/sdmc"
     newTasDirOpt='tas_directory='"${storagePath}/eden/tas"
 
     sed -i "/${screenshotDirOpt}/c\\${newScreenshotDirOpt}" "$Eden_configFile"
@@ -172,11 +172,11 @@ Eden_setEmulationFolder() {
     unlink "${biosPath}/eden/firmware" 2>/dev/null
 
     mkdir -p "$HOME/.local/share/eden/keys/"
-    mkdir -p "${storagePath}/eden/nand/system/Contents/registered/"
+    mkdir -p "${storagePath}/switch/nand/system/Contents/registered/"
     mkdir -p "${biosPath}/eden"
     ln -sn "$HOME/.local/share/eden/keys/" "${biosPath}/eden/keys"
-    ln -sn "${storagePath}/eden/nand/system/Contents/registered/" "${biosPath}/eden/firmware"
-    touch "${storagePath}/eden/nand/system/Contents/registered/putfirmwarehere.txt"
+    ln -sn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/eden/firmware"
+    touch "${storagePath}/switch/nand/system/Contents/registered/putfirmwarehere.txt"
 
 }
 
@@ -215,12 +215,10 @@ Eden_setupSaves() {
 Eden_setupStorage() {
     echo "Begin Eden storage config"
     mkdir -p "${storagePath}/eden/dump"
-    mkdir -p "${storagePath}/eden/load"
-    mkdir -p "${storagePath}/eden/sdmc"
     mkdir -p "${storagePath}/eden/nand"
-    mkdir -p "${storagePath}/eden/nand/system/Contents/registered"
     mkdir -p "${storagePath}/eden/screenshots"
     mkdir -p "${storagePath}/eden/tas"
+    Switch_setupYuzuFamilySharedStorage eden
     #Symlink to saves for CloudSync
     ln -sn "${storagePath}/eden/nand/system/save/8000000000000010/su/avators/" "${savesPath}/eden/profiles"
 }
