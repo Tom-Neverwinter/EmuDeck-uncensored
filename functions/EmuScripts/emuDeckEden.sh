@@ -171,11 +171,13 @@ Eden_setEmulationFolder() {
     unlink "${biosPath}/eden/keys" 2>/dev/null
     unlink "${biosPath}/eden/firmware" 2>/dev/null
 
-    mkdir -p "$HOME/.local/share/eden/keys/"
     mkdir -p "${storagePath}/switch/nand/system/Contents/registered/"
     mkdir -p "${biosPath}/eden"
-    ln -sn "$HOME/.local/share/eden/keys/" "${biosPath}/eden/keys"
-    ln -sn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/eden/firmware"
+
+    # Shared Switch keys + firmware (same prod.keys / firmware dump for Eden/Citron/Ryujinx)
+    Switch_linkSharedKeys "$HOME/.local/share/eden/keys"
+    ln -sfn "${biosPath}/switch/keys" "${biosPath}/eden/keys"
+    ln -sfn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/eden/firmware"
     touch "${storagePath}/switch/nand/system/Contents/registered/putfirmwarehere.txt"
 
 }

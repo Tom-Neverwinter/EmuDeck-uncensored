@@ -147,11 +147,13 @@ Citron_setEmulationFolder() {
     unlink "${biosPath}/citron/keys" 2>/dev/null
     unlink "${biosPath}/citron/firmware" 2>/dev/null
 
-    mkdir -p "$HOME/.local/share/citron/keys/"
     mkdir -p "${storagePath}/switch/nand/system/Contents/registered/"
     mkdir -p "${biosPath}/citron"
-    ln -sn "$HOME/.local/share/citron/keys/" "${biosPath}/citron/keys"
-    ln -sn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/citron/firmware"
+
+    # Shared Switch keys + firmware (same prod.keys / firmware dump for Eden/Citron/Ryujinx)
+    Switch_linkSharedKeys "$HOME/.local/share/citron/keys"
+    ln -sfn "${biosPath}/switch/keys" "${biosPath}/citron/keys"
+    ln -sfn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/citron/firmware"
     touch "${storagePath}/switch/nand/system/Contents/registered/putfirmwarehere.txt"
 
 }

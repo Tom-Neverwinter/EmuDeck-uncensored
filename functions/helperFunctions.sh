@@ -288,6 +288,47 @@ function Switch_setupYuzuFamilySharedStorage(){
 		rm -rf "${emuNand}/system/Contents/registered"
 	fi
 	ln -sfn "$sharedFirmware" "${emuNand}/system/Contents/registered"
+
+	# Shared user saves (yuzu-family only: Eden/Citron/Yuzu use the same nand/user/save format)
+	local sharedUserSave="${sharedSwitchStorage}/nand/user/save"
+	mkdir -p "$sharedUserSave"
+	if [ -d "${emuNand}/user/save" ] && [ ! -L "${emuNand}/user/save" ]; then
+		rsync -a "${emuNand}/user/save/" "$sharedUserSave/"
+		rm -rf "${emuNand}/user/save"
+	fi
+	ln -sfn "$sharedUserSave" "${emuNand}/user/save"
+}
+
+# Links an emulator's real keys directory to one shared Switch keys folder.
+# prod.keys/title.keys are identical across Eden/Citron/Ryujinx/Yuzu, so they can be shared.
+# $1 = the directory the emulator actually reads keys from
+function Switch_linkSharedKeys(){
+	local emuKeysDir="$1"
+	local sharedKeys="${biosPath}/switch/keys"
+
+	mkdir -p "$sharedKeys"
+	if [ -d "$emuKeysDir" ] && [ ! -L "$emuKeysDir" ]; then
+		rsync -a "$emuKeysDir/" "$sharedKeys/" 2>/dev/null
+		rm -rf "$emuKeysDir"
+	fi
+	mkdir -p "$(dirname "$emuKeysDir")"
+	ln -sfn "$sharedKeys" "$emuKeysDir"
+}
+
+# Links an emulator's firmware (registered NCA) directory to the shared Switch firmware folder.
+# Switch firmware dumps are identical across emulators, so they can be shared.
+# $1 = the directory the emulator actually reads firmware from
+function Switch_linkSharedFirmware(){
+	local emuFwDir="$1"
+	local sharedFw="${storagePath}/switch/nand/system/Contents/registered"
+
+	mkdir -p "$sharedFw"
+	if [ -d "$emuFwDir" ] && [ ! -L "$emuFwDir" ]; then
+		rsync -a "$emuFwDir/" "$sharedFw/" 2>/dev/null
+		rm -rf "$emuFwDir"
+	fi
+	mkdir -p "$(dirname "$emuFwDir")"
+	ln -sfn "$sharedFw" "$emuFwDir"
 }
 
 function createUpdateSettingsFile(){

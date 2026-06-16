@@ -145,11 +145,16 @@ Ryujinx_setEmulationFolder(){
 #     sed -i "/${tasDirOpt}/c\\${newTasDirOpt}" "$configFile"
 
     #Setup Bios symlinks
-    unlink "${biosPath}/ryujinx/keys"
-    mkdir -p "$HOME/.config/Ryujinx/system/"
+    unlink "${biosPath}/ryujinx/keys" 2>/dev/null
     mkdir -p "${biosPath}/ryujinx/"
-    unlink "$HOME/.config/Ryujinx/system"
-    ln -sn "$HOME/.config/Ryujinx/system" "${biosPath}/ryujinx/keys"
+
+    # Shared Switch keys (same prod.keys for Eden/Citron/Ryujinx)
+    Switch_linkSharedKeys "$HOME/.config/Ryujinx/system"
+    ln -sfn "${biosPath}/switch/keys" "${biosPath}/ryujinx/keys"
+
+    # Shared Switch firmware (same NCA dump for all three; Ryujinx reads from bis/system/Contents/registered)
+    Switch_linkSharedFirmware "$HOME/.config/Ryujinx/bis/system/Contents/registered"
+
     sed -i "s|/run/media/mmcblk0p1/Emulation/roms|${romsPath}|g" "$Ryujinx_configFile"
 
 }
