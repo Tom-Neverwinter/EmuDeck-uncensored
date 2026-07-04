@@ -243,6 +243,7 @@ SRM_addExtraParsers(){
   "mGBA_IsInstalled mGBA_addParser" \
   "melonDS_IsInstalled melonDS_addParser" \
   "RMG_IsInstalled RMG_addParser" \
+  "Eden_IsInstalled Eden_addParser" \
   "Citron_IsInstalled Citron_addParser" \
   "Yuzu_IsInstalled Yuzu_addParser"; do
 

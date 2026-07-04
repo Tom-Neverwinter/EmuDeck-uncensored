@@ -72,6 +72,10 @@ pegasus_setPaths(){
 		cp "$emudeckBackend/roms_alt_emus/switch/citron/metadata.txt" "$romsPath/switch/metadata.txt"
 	fi
 
+	if [ "$(Eden_IsInstalled)" == "true" ]; then
+		cp "$emudeckBackend/roms_alt_emus/switch/eden/metadata.txt" "$romsPath/switch/metadata.txt"
+	fi
+
 	find $romsPath/ -type f -name "metadata.txt" -exec sed -i "s|CORESPATH|${RetroArch_cores}|g" {} \;
 	find $romsPath/ -type f -name "metadata.txt" -exec sed -i "s|/run/media/mmcblk0p1/Emulation|${emulationPath}|g" {} \;
 

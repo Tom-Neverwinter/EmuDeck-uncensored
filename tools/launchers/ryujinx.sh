@@ -13,6 +13,14 @@ exe=()
 #find full path to emu executable
 exe_path=$(find "$emufolder" -iname "${emuName}.sh" | sort -n | cut -d' ' -f 2- | tail -n 1 2>/dev/null)
 
+if [[ -z "$exe_path" ]]; then
+    exe_path=$(find "$emufolder" -iname "${emuName}" | sort -n | cut -d' ' -f 2- | tail -n 1 2>/dev/null)
+fi
+
+if [[ -z "$exe_path" ]]; then
+    exe_path=$(find "$emusFolder" -maxdepth 1 \( -iname "${emuName}*.AppImage" -o -iname "ryujinx*.AppImage" \) | sort -n | cut -d' ' -f 2- | tail -n 1 2>/dev/null)
+fi
+
 #if appimage doesn't exist fall back to flatpak.
 if [[ -z "$exe_path" ]]; then
     #flatpak
