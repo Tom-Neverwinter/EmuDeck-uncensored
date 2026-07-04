@@ -1,5 +1,8 @@
 #!/bin/bash
+cd "$HOME/.config/EmuDeck/backend/"
+git pull
 . "$HOME/.config/EmuDeck/backend/functions/all.sh"
+launcherInit
 emulatorInit "shadps4"
 emuName="Shadps4-qt" #parameterize me
 emufolder="$emusFolder" # has to be applications for ES-DE to find it
@@ -52,7 +55,7 @@ if [[ $fileExtension == "desktop" ]]; then
     fi
 
     # construct launch args and run
-    launch_args=("-g" "$launchParam")
+    launch_args=("-d" "-g" "$launchParam")
     echo "Launching: ${exe[*]} ${launch_args[*]}"
     "${exe[@]}" "${launch_args[@]}"
 else

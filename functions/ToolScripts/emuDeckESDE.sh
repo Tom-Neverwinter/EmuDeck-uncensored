@@ -142,6 +142,7 @@ ESDE_init(){
 	SRM_flushOldSymlinks
 
 	sed -i "s|/run/media/mmcblk0p1/Emulation|${emulationPath}|g" "$es_rulesFile"
+	sed -i "s|/run/media/mmcblk0p1/Emulation|${emulationPath}|g" "$es_systemsFile"
 }
 
 ESDE_createLauncher(){
@@ -285,22 +286,6 @@ ESDE_setEmulationFolder(){
 			#update
 			cemuProtonCommandString="/bin/bash ${toolsPath}/launchers/cemu.sh -w -f -g z:%ROM%"
 			xmlstarlet ed -L -u '/systemList/system/command[@label="Cemu (Proton)"]' -v "$cemuProtonCommandString" "$es_systemsFile"
-		fi
-	fi
-	if [[ ! $(grep -rnw "$es_systemsFile" -e 'xbox360') == "" ]]; then
-		if [[ $(grep -rnw "$es_systemsFile" -e 'Xenia (Proton)') == "" ]]; then
-			#insert
-			xmlstarlet ed -S --inplace --subnode 'systemList/system[name="xbox360"]' --type elem --name 'commandP' -v "/bin/bash ${toolsPath}/launchers/xenia.sh z:%ROM% %INJECT%=%BASENAME%.esprefix" \
-			--insert 'systemList/system/commandP' --type attr --name 'label' --value "Xenia (Proton)" \
-			-r 'systemList/system/commandP' -v 'command' \
-			"$es_systemsFile"
-
-			#format doc to make it look nice
-			xmlstarlet fo "$es_systemsFile" > "$es_systemsFile".tmp && mv "$es_systemsFile".tmp "$es_systemsFile"
-		else
-			#update
-			xeniaProtonCommandString="/bin/bash ${toolsPath}/launchers/xenia.sh z:%ROM% %INJECT%=%BASENAME%.esprefix"
-			xmlstarlet ed -L -u '/systemList/system/command[@label="Xenia (Proton)"]' -v "$xeniaProtonCommandString" "$es_systemsFile"
 		fi
 	fi
 	if [[ ! $(grep -rnw "$es_systemsFile" -e 'model2') == "" ]]; then
@@ -451,7 +436,11 @@ ESDE_setDefaultEmulators(){
 	ESDE_setEmu 'DuckStation (Standalone)' psx
 	ESDE_setEmu 'Beetle Saturn' saturn
 	ESDE_setEmu 'ScummVM (Standalone)' scummvm
-	ESDE_setEmu 'Ryujinx (Standalone)' switch
+	if [ "$(Eden_IsInstalled)" == "true" ]; then
+		ESDE_setEmu 'Eden (Standalone)' switch
+	else
+		ESDE_setEmu 'Ryujinx (Standalone)' switch
+	fi
 }
 
 ESDE_migrateDownloadedMedia(){

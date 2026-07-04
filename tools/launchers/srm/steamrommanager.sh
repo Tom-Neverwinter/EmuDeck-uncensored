@@ -1,5 +1,8 @@
 #!/bin/bash
+cd "$HOME/.config/EmuDeck/backend/"
+git pull
 . "$HOME/.config/EmuDeck/backend/functions/all.sh"
+launcherInit
 
 sandbox=""
 
@@ -17,6 +20,8 @@ else
 	SRM_install
 	SRM_init
 fi
+
+SRM_checkParsers
 
 if grep -q '"autoKillSteam": true' "$HOME/.config/steam-rom-manager/userData/userSettings.json"; then
 	echo "Steam ROM Manager path: $SRM_toolPath"

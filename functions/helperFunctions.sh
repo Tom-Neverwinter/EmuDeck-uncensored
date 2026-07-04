@@ -525,7 +525,7 @@ function linkToSaveFolder(){
 			mkdir -p "$savesPath/$emu"
 			setMSG "Linking $emu $folderName to the Emulation/saves folder"
 			mkdir -p "$path"
-			ln -snv "$path" "$savesPath/$emu/$folderName"
+			ln -snfv "$path" "$savesPath/$emu/$folderName"
 		fi
 	else
 		if [ ! -L "$savesPath/$emu/$folderName" ]; then
@@ -1152,7 +1152,7 @@ function emulatorInit(){
 			if [ $status -eq 0 ]; then
 				echo "CloudSync Service running"
 			else
-				text="$(printf "<b>CloudSync Error.</b>\nCloudSync service is not running. Please contact us on Patreon")"
+				text="$(printf "<b>CloudSync Error.</b>\nCloudSync service is not running. Please reboot your machine")"
 				zenity --error \
 				--title="EmuDeck" \
 				--width=400 \
@@ -1160,7 +1160,7 @@ function emulatorInit(){
 			fi
 
 		else
-			text="$(printf "<b>CloudSync Error.</b>\nInternet connection not available. Please contact us on Patreon")"
+			text="$(printf "<b>CloudSync Error.</b>\nInternet connection not available. Please reboot your machine")"
 			zenity --error \
 			--title="EmuDeck" \
 			--width=400 \

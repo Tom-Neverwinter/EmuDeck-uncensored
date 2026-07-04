@@ -72,7 +72,7 @@ Eden_install() {
 
   latestVer=$(basename "$downloadURL" | sed -E 's/^Eden-Linux-([^-]+)-.*$/\1/')
 
-  installEmuAI "$Eden_emuName" "$Eden_emuName" "$downloadURL" "Eden" "AppImage" "$Eden_emuType" "$showProgress" "$lastVerFile" "$latestVer"
+  installEmuAI "$Eden_emuName" "$Eden_emuName" "$downloadURL" "Eden" "AppImage" "emulator" "$showProgress" "$lastVerFile" "$latestVer"
   return $?
 
   # Llamada a la API para obtener la última release
