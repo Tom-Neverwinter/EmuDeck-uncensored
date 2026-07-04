@@ -8,6 +8,14 @@ createFolders(){
 	mkdir -p "$romsPath"
 	mkdir -p "$storagePath"
 	mkdir -p "$biosPath"/yuzu
+	mkdir -p "$biosPath"/citron
+	mkdir -p "$biosPath"/eden
+	mkdir -p "$biosPath"/ryujinx
+	mkdir -p "$storagePath"/switch/load
+	mkdir -p "$storagePath"/switch/sdmc
+	mkdir -p "$storagePath"/switch/nand/user/Contents
+	mkdir -p "$storagePath"/switch/nand/system/Contents/registered
+	mkdir -p "$storagePath"/switch/patchesAndDlc
 	mkdir -p "$biosPath"/HdPacks
 	mkdir -p "$biosPath"/Mupen64plus/cache
 	mkdir -p "$emulationPath"/hdpacks

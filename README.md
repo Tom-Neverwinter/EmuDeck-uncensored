@@ -5,6 +5,8 @@
 
 EmuDeck is a collection of scripts that allows you to autoconfigure your Steam Deck or any other Linux Distro, it creates your roms directory structure and downloads all of the needed Emulators for you along with the best configurations for each of them. EmuDeck works great with [Steam Rom Manager](https://github.com/SteamGridDB/steam-rom-manager) or with [EmulationStation DE](https://es-de.org)
 
+Ready to switch it up and go full Steam ahead, with handheld-friendly defaults and room for the whole couch to join in.
+
 ## How to use EmuDeck?
 
 We recomend you take a look at our extensive Wiki, you'll find guides, videos and all sorts of content about the project:

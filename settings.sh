@@ -9,6 +9,7 @@ doSetupDolphin=true
 doSetupPCSX2=false
 doSetupRPCS3=true
 doSetupYuzu=true
+doSetupEden=true
 doSetupCitra=true
 doSetupDuck=true
 doSetupCemu=true
@@ -39,6 +40,7 @@ doInstallDolphin=false
 doInstallPCSX2=false
 doInstallRPCS3=false
 doInstallYuzu=false
+doInstallEden=false
 doInstallCitra=false
 doInstallDuck=false
 doInstallCemu=false
@@ -95,6 +97,7 @@ doESDEThemePicker=false
 doSelectEmulators=false
 doResetEmulators=false
 XemuWide=false
+edenResolution=720P
 
 #New UI settings
 achievementsPass=false

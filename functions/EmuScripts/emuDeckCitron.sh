@@ -130,9 +130,9 @@ Citron_setEmulationFolder() {
     newScreenshotDirOpt='Screenshots\\screenshot_path='"${storagePath}/citron/screenshots"
     newGameDirOpt='Paths\\gamedirs\\4\\path='"${romsPath}/switch"
     newDumpDirOpt='dump_directory='"${storagePath}/citron/dump"
-    newLoadDir='load_directory='"${storagePath}/citron/load"
+    newLoadDir='load_directory='"${storagePath}/switch/load"
     newNandDirOpt='nand_directory='"${storagePath}/citron/nand"
-    newSdmcDirOpt='sdmc_directory='"${storagePath}/citron/sdmc"
+    newSdmcDirOpt='sdmc_directory='"${storagePath}/switch/sdmc"
     newTasDirOpt='tas_directory='"${storagePath}/citron/tas"
 
     sed -i "/${screenshotDirOpt}/c\\${newScreenshotDirOpt}" "$Citron_configFile"
@@ -147,10 +147,14 @@ Citron_setEmulationFolder() {
     unlink "${biosPath}/citron/keys" 2>/dev/null
     unlink "${biosPath}/citron/firmware" 2>/dev/null
 
-    mkdir -p "$HOME/.local/share/citron/keys/"
+    mkdir -p "${storagePath}/switch/nand/system/Contents/registered/"
     mkdir -p "${biosPath}/citron"
-    ln -sn "$HOME/.local/share/citron/keys/" "${biosPath}/citron/keys"
-    ln -sn "$HOME/.local/share/citron/nand/system/Contents/registered/" "${biosPath}/citron/firmware"
+
+    # Shared Switch keys + firmware (same prod.keys / firmware dump for Eden/Citron/Ryujinx)
+    Switch_linkSharedKeys "$HOME/.local/share/citron/keys"
+    ln -sfn "${biosPath}/switch/keys" "${biosPath}/citron/keys"
+    ln -sfn "${storagePath}/switch/nand/system/Contents/registered/" "${biosPath}/citron/firmware"
+    touch "${storagePath}/switch/nand/system/Contents/registered/putfirmwarehere.txt"
 
 }
 
@@ -189,11 +193,10 @@ Citron_setupSaves() {
 Citron_setupStorage() {
     echo "Begin Citron storage config"
     mkdir -p "${storagePath}/citron/dump"
-    mkdir -p "${storagePath}/citron/load"
-    mkdir -p "${storagePath}/citron/sdmc"
     mkdir -p "${storagePath}/citron/nand"
     mkdir -p "${storagePath}/citron/screenshots"
     mkdir -p "${storagePath}/citron/tas"
+    Switch_setupYuzuFamilySharedStorage citron
     #Symlink to saves for CloudSync
     ln -sn "${storagePath}/citron/nand/system/save/8000000000000010/su/avators/" "${savesPath}/citron/profiles"
 }

@@ -100,6 +100,8 @@ Migration_updatePaths(){
 	sed -i "s|${origin}|${destination}|g" "$Xenia_XeniaSettings"
 	#Yuzu
 	sed -i "s|${origin}|${destination}|g" "$HOME/.config/yuzu/qt-config.ini"
+	#Eden
+	sed -i "s|${origin}|${destination}|g" "$HOME/.config/eden/qt-config.ini"
 	#SRM
 	Migration_updateSRM $origin $destination
 

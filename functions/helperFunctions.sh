@@ -234,7 +234,7 @@ function updateOrAppendConfigLine(){
 	mkdir -p "$fullPath"
 	touch "$configFile"
 
-	local optionFound=$(grep -rnw  "$configFile" -e "$option")
+	local optionFound=$(grep -Fn -- "$option" "$configFile")
 	if [[ "$optionFound" == '' ]]; then
 		echo "appending: $replacement to $configFile"
 		echo "$replacement" >> "$configFile"
@@ -263,6 +263,74 @@ function getSetting(){
 	cut -d "=" -f2 <<< "$(grep -r "^${setting}=" "$emuDecksettingsFile")"
 }
 
+function Switch_setupYuzuFamilySharedStorage(){
+	local emu="$1"
+	local emuNand="${storagePath}/${emu}/nand"
+	local sharedSwitchStorage="${storagePath}/switch"
+	local sharedUserContents="${sharedSwitchStorage}/nand/user/Contents"
+	local sharedFirmware="${sharedSwitchStorage}/nand/system/Contents/registered"
+
+	mkdir -p "${sharedSwitchStorage}/load"
+	mkdir -p "${sharedSwitchStorage}/sdmc"
+	mkdir -p "$sharedUserContents"
+	mkdir -p "$sharedFirmware"
+	mkdir -p "${emuNand}/user"
+	mkdir -p "${emuNand}/system/Contents"
+
+	if [ -d "${emuNand}/user/Contents" ] && [ ! -L "${emuNand}/user/Contents" ]; then
+		rsync -a "${emuNand}/user/Contents/" "$sharedUserContents/"
+		rm -rf "${emuNand}/user/Contents"
+	fi
+	ln -sfn "$sharedUserContents" "${emuNand}/user/Contents"
+
+	if [ -d "${emuNand}/system/Contents/registered" ] && [ ! -L "${emuNand}/system/Contents/registered" ]; then
+		rsync -a "${emuNand}/system/Contents/registered/" "$sharedFirmware/"
+		rm -rf "${emuNand}/system/Contents/registered"
+	fi
+	ln -sfn "$sharedFirmware" "${emuNand}/system/Contents/registered"
+
+	# Shared user saves (yuzu-family only: Eden/Citron/Yuzu use the same nand/user/save format)
+	local sharedUserSave="${sharedSwitchStorage}/nand/user/save"
+	mkdir -p "$sharedUserSave"
+	if [ -d "${emuNand}/user/save" ] && [ ! -L "${emuNand}/user/save" ]; then
+		rsync -a "${emuNand}/user/save/" "$sharedUserSave/"
+		rm -rf "${emuNand}/user/save"
+	fi
+	ln -sfn "$sharedUserSave" "${emuNand}/user/save"
+}
+
+# Links an emulator's real keys directory to one shared Switch keys folder.
+# prod.keys/title.keys are identical across Eden/Citron/Ryujinx/Yuzu, so they can be shared.
+# $1 = the directory the emulator actually reads keys from
+function Switch_linkSharedKeys(){
+	local emuKeysDir="$1"
+	local sharedKeys="${biosPath}/switch/keys"
+
+	mkdir -p "$sharedKeys"
+	if [ -d "$emuKeysDir" ] && [ ! -L "$emuKeysDir" ]; then
+		rsync -a "$emuKeysDir/" "$sharedKeys/" 2>/dev/null
+		rm -rf "$emuKeysDir"
+	fi
+	mkdir -p "$(dirname "$emuKeysDir")"
+	ln -sfn "$sharedKeys" "$emuKeysDir"
+}
+
+# Links an emulator's firmware (registered NCA) directory to the shared Switch firmware folder.
+# Switch firmware dumps are identical across emulators, so they can be shared.
+# $1 = the directory the emulator actually reads firmware from
+function Switch_linkSharedFirmware(){
+	local emuFwDir="$1"
+	local sharedFw="${storagePath}/switch/nand/system/Contents/registered"
+
+	mkdir -p "$sharedFw"
+	if [ -d "$emuFwDir" ] && [ ! -L "$emuFwDir" ]; then
+		rsync -a "$emuFwDir/" "$sharedFw/" 2>/dev/null
+		rm -rf "$emuFwDir"
+	fi
+	mkdir -p "$(dirname "$emuFwDir")"
+	ln -sfn "$sharedFw" "$emuFwDir"
+}
+
 function createUpdateSettingsFile(){
 	#!/bin/bash
 
@@ -276,6 +344,7 @@ function createUpdateSettingsFile(){
 	#defaultSettingsList+=("doSetupPCSX2=true")
 	defaultSettingsList+=("doSetupRPCS3=true")
 	defaultSettingsList+=("doSetupYuzu=true")
+	defaultSettingsList+=("doSetupEden=true")
 	defaultSettingsList+=("doSetupDuck=true")
 	defaultSettingsList+=("doSetupCemu=true")
 	defaultSettingsList+=("doSetupXenia=false")
@@ -306,6 +375,7 @@ function createUpdateSettingsFile(){
 	defaultSettingsList+=("doInstallRyujinx=true")
 	defaultSettingsList+=("doInstallRPCS3=true")
 	defaultSettingsList+=("doInstallYuzu=true")
+	defaultSettingsList+=("doInstallEden=false")
 	defaultSettingsList+=("doInstallDuck=true")
 	defaultSettingsList+=("doInstallCemu=true")
 	defaultSettingsList+=("doInstallXenia=true")
@@ -331,6 +401,7 @@ function createUpdateSettingsFile(){
 	defaultSettingsList+=("DreamcastWide=false")
 	defaultSettingsList+=("BeetleWide=false")
 	defaultSettingsList+=("pcsx2QTWide=false")
+	defaultSettingsList+=("edenResolution=720P")
 	defaultSettingsList+=("emulationPath=$HOME/Emulation")
 	defaultSettingsList+=("romsPath=$HOME/Emulation/roms")
 	defaultSettingsList+=("toolsPath=$HOME/Emulation/tools")
@@ -881,6 +952,7 @@ setResolutions(){
 	Xemu_setResolution
 	Xenia_setResolution
 	Yuzu_setResolution
+	Eden_setResolution
 }
 
 # get variable value from kvp-style config file
@@ -1120,8 +1192,9 @@ function controllerLayout_ABXY(){
  	melonDS_setABXYstyle
 	RetroArch_setABXYstyle
 	RMG_setABXYstyle
- 	Ryujinx_setABXYstyle
+	Ryujinx_setABXYstyle
 	Yuzu_setABXYstyle
+	Eden_setABXYstyle
 }
 
 function controllerLayout_BAYX(){
@@ -1133,6 +1206,7 @@ function controllerLayout_BAYX(){
 	RMG_setBAYXstyle
 	Ryujinx_setBAYXstyle
 	Yuzu_setBAYXstyle
+	Eden_setBAYXstyle
 }
 
 function server_install(){
@@ -1228,6 +1302,7 @@ function flushAllLaunchers(){
 		"$doSetupAzahar Azahar_flushEmulatorLauncher" \
 		"$doSetupDuck DuckStation_flushEmulatorLauncher" \
 		"$doSetupYuzu Yuzu_flushEmulatorLauncher" \
+		"$doSetupEden Eden_flushEmulatorLauncher" \
 		"$doSetupRyujinx Ryujinx_flushEmulatorLauncher" \
 		"$doSetupShadPS4 ShadPS4_flushEmulatorLauncher" \
 		"$doSetupPPSSPP PPSSPP_flushEmulatorLauncher" \

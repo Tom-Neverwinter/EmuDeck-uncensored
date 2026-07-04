@@ -5,6 +5,7 @@ Ryujinx_emuName="Ryujinx"
 Ryujinx_emuType="$emuDeckEmuTypeBinary"
 Ryujinx_emuPath="$emusFolder/publish"
 Ryujinx_configFile="$HOME/.config/Ryujinx/Config.json"
+Ryujinx_releaseAPI="https://git.ryujinx.app/api/v1/repos/Ryubing/Canary/releases/latest"
 # https://github.com/Ryujinx/Ryujinx/blob/master/Ryujinx.Ui.Common/Configuration/System/Language.cs#L3-L23
 Ryujinx_controllerFile="$HOME/.config/Ryujinx/profiles/controller/Deck.json"
 
@@ -49,12 +50,24 @@ Ryujinx_cleanup(){
 Ryujinx_install(){
     echo "Begin Ryujinx Install"
     local showProgress=$1
-    local url=$(curl -s -H "User-Agent: EmuDeck" "https://git.ryujinx.app/api/v1/repos/Ryubing/Canary/releases/latest" | jq -r '.assets[] | select(.browser_download_url | test("linux_x64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+    local releaseData
+    local url
+    local latestVer
+    local lastVerFile="$emudeckFolder/ryujinx.ver"
 
-    if installEmuBI "$Ryujinx_emuName" "$url" "" "tar.gz" "$showProgress"; then
-        mkdir -p "$emusFolder/publish"
-        tar -xvf "$emusFolder/Ryujinx.tar.gz" -C "$emusFolder" && rm -f "$emusFolder/Ryujinx.tar.gz"
-        chmod +x "$emusFolder/publish/Ryujinx"
+    releaseData=$(curl -fsSL -H "User-Agent: EmuDeck" "$Ryujinx_releaseAPI") || return 1
+    url=$(echo "$releaseData" | jq -r '.assets[] | select(.browser_download_url | test("linux_x64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+    latestVer=$(echo "$releaseData" | jq -r '.tag_name // empty')
+
+    if [[ -z "$url" || "$url" == "null" ]]; then
+        echo "Could not find a Ryujinx Canary Linux x64 tarball in $Ryujinx_releaseAPI"
+        return 1
+    fi
+
+    if installEmuBI "$Ryujinx_emuName" "$url" "" "tar.gz" "$showProgress" "$lastVerFile" "$latestVer"; then
+        rm -rf "$emusFolder/publish"
+        tar -xzf "$emusFolder/Ryujinx.tar.gz" -C "$emusFolder" && rm -f "$emusFolder/Ryujinx.tar.gz"
+        chmod +x "$emusFolder/publish/Ryujinx" "$emusFolder/publish/Ryujinx.sh" 2>/dev/null
     else
         return 1
     fi
@@ -69,6 +82,7 @@ Ryujinx_init(){
     Ryujinx_setEmulationFolder
     Ryujinx_setupStorage
     Ryujinx_setupSaves
+    Ryujinx_applyControllerLayout
     Ryujinx_finalize
 	#SRM_createParsers
     Ryujinx_flushEmulatorLauncher
@@ -87,11 +101,12 @@ Ryujinx_init(){
 Ryujinx_update(){
     echo "Begin Ryujinx update"
 
-    configEmuAI "yuzu" "config" "$HOME/.config/Ryujinx" "$emudeckBackend/configs/Ryujinx"
+    configEmuAI "Ryujinx" "config" "$HOME/.config/Ryujinx" "$emudeckBackend/configs/Ryujinx"
 
     Ryujinx_setEmulationFolder
     Ryujinx_setupStorage
     Ryujinx_setupSaves
+    Ryujinx_applyControllerLayout
     Ryujinx_finalize
     Ryujinx_flushEmulatorLauncher
 
@@ -130,11 +145,16 @@ Ryujinx_setEmulationFolder(){
 #     sed -i "/${tasDirOpt}/c\\${newTasDirOpt}" "$configFile"
 
     #Setup Bios symlinks
-    unlink "${biosPath}/ryujinx/keys"
-    mkdir -p "$HOME/.config/Ryujinx/system/"
+    unlink "${biosPath}/ryujinx/keys" 2>/dev/null
     mkdir -p "${biosPath}/ryujinx/"
-    unlink "$HOME/.config/Ryujinx/system"
-    ln -sn "$HOME/.config/Ryujinx/system" "${biosPath}/ryujinx/keys"
+
+    # Shared Switch keys (same prod.keys for Eden/Citron/Ryujinx)
+    Switch_linkSharedKeys "$HOME/.config/Ryujinx/system"
+    ln -sfn "${biosPath}/switch/keys" "${biosPath}/ryujinx/keys"
+
+    # Shared Switch firmware (same NCA dump for all three; Ryujinx reads from bis/system/Contents/registered)
+    Switch_linkSharedFirmware "$HOME/.config/Ryujinx/bis/system/Contents/registered"
+
     sed -i "s|/run/media/mmcblk0p1/Emulation/roms|${romsPath}|g" "$Ryujinx_configFile"
 
 }
@@ -180,10 +200,21 @@ Ryujinx_setupStorage(){
     echo "Begin Ryujinx storage config"
 
     local origPath="$HOME/.config/"
-    mkdir -p "${storagePath}/ryujinx/patchesAndDlc"
-    rsync -av "${origPath}/Ryujinx/games/" "${storagePath}/ryujinx/games/" && rm -rf "${origPath}Ryujinx/games"
-    unlink "${origPath}/Ryujinx/games"
-    ln -ns "${storagePath}/ryujinx/games/" "${origPath}/Ryujinx/games"
+    local sharedPatchesAndDlc="${storagePath}/switch/patchesAndDlc"
+    mkdir -p "${storagePath}/ryujinx"
+    mkdir -p "$sharedPatchesAndDlc"
+    if [ -d "${storagePath}/ryujinx/patchesAndDlc" ] && [ ! -L "${storagePath}/ryujinx/patchesAndDlc" ]; then
+        rsync -a "${storagePath}/ryujinx/patchesAndDlc/" "$sharedPatchesAndDlc/"
+        rm -rf "${storagePath}/ryujinx/patchesAndDlc"
+    fi
+    ln -sfn "$sharedPatchesAndDlc" "${storagePath}/ryujinx/patchesAndDlc"
+    mkdir -p "${origPath}/Ryujinx"
+    mkdir -p "${storagePath}/ryujinx/games"
+    if [ -d "${origPath}/Ryujinx/games" ] && [ ! -L "${origPath}/Ryujinx/games" ]; then
+        rsync -av "${origPath}/Ryujinx/games/" "${storagePath}/ryujinx/games/" && rm -rf "${origPath}/Ryujinx/games"
+    fi
+    unlink "${origPath}/Ryujinx/games" 2>/dev/null
+    ln -sfn "${storagePath}/ryujinx/games/" "${origPath}/Ryujinx/games"
 }
 
 #WipeSettings
@@ -196,6 +227,8 @@ Ryujinx_wipe(){
 Ryujinx_uninstall(){
     echo "Begin Ryujinx uninstall"
     uninstallGeneric $Ryujinx_emuName $Ryujinx_emuPath "" "emulator"
+    find "$emusFolder" -maxdepth 1 -iname "Ryujinx*.AppImage" -exec rm -f {} +
+    find "$emusFolder" -maxdepth 1 -iname "ryujinx*.AppImage" -exec rm -f {} +
 }
 
 #Migrate
@@ -219,7 +252,7 @@ Ryujinx_migrate(){
 
     Ryujinx_setupStorage
     rsync -av "${origPath}/Ryujinx/games" "${storagePath}/ryujinx/games" && rm -rf "${origPath}/Ryujinx/games"
-    ln -s "${storagePath}/ryujinx/games" "${origPath}/ryujinx/games"  #may want to unlink this before hand?
+    ln -sfn "${storagePath}/ryujinx/games" "${origPath}/Ryujinx/games"  #may want to unlink this before hand?
 }
 
 Ryujinx_convertFromYuzu(){
@@ -233,18 +266,47 @@ Ryujinx_convertFromYuzu(){
 }
 
 #setABXYstyle
-Ryujinx_setABXYstyle(){
-    sed -i 's/"button_x": "Y",/"button_x": "X",/' $Ryujinx_configFile
-    sed -i 's/"button_b": "A",/"button_b": "B",/' $Ryujinx_configFile
-    sed -i 's/"button_y": "X",/"button_y": "Y",/' $Ryujinx_configFile
-    sed -i 's/"button_a": "B"/"button_a": "A"/' $Ryujinx_configFile
+Ryujinx_setFaceButtons(){
+    local button_a="$1"
+    local button_b="$2"
+    local button_x="$3"
+    local button_y="$4"
+    local tmp
 
+    if [ -f "$Ryujinx_configFile" ]; then
+        tmp=$(mktemp)
+        jq --arg button_a "$button_a" \
+           --arg button_b "$button_b" \
+           --arg button_x "$button_x" \
+           --arg button_y "$button_y" \
+           '.input_config |= (if type == "array" then map(.right_joycon.button_a = $button_a | .right_joycon.button_b = $button_b | .right_joycon.button_x = $button_x | .right_joycon.button_y = $button_y) else . end)' \
+           "$Ryujinx_configFile" > "$tmp" && mv "$tmp" "$Ryujinx_configFile"
+    fi
+
+    if [ -f "$Ryujinx_controllerFile" ]; then
+        tmp=$(mktemp)
+        jq --arg button_a "$button_a" \
+           --arg button_b "$button_b" \
+           --arg button_x "$button_x" \
+           --arg button_y "$button_y" \
+           '.right_joycon.button_a = $button_a | .right_joycon.button_b = $button_b | .right_joycon.button_x = $button_x | .right_joycon.button_y = $button_y' \
+           "$Ryujinx_controllerFile" > "$tmp" && mv "$tmp" "$Ryujinx_controllerFile"
+    fi
+}
+
+Ryujinx_applyControllerLayout(){
+    if [ "$controllerLayout" == "bayx" ] || [ "$controllerLayout" == "baxy" ]; then
+        Ryujinx_setBAYXstyle
+    else
+        Ryujinx_setABXYstyle
+    fi
+}
+
+Ryujinx_setABXYstyle(){
+    Ryujinx_setFaceButtons "A" "B" "X" "Y"
 }
 Ryujinx_setBAYXstyle(){
-    sed -i 's/"button_x": "X",/"button_x": "Y",/' $Ryujinx_configFile
-    sed -i 's/"button_b": "B",/"button_b": "A",/' $Ryujinx_configFile
-    sed -i 's/"button_y": "Y",/"button_y": "X",/' $Ryujinx_configFile
-    sed -i 's/"button_a": "A"/"button_a": "B"/' $Ryujinx_configFile
+    Ryujinx_setFaceButtons "B" "A" "Y" "X"
 }
 
 
@@ -274,7 +336,9 @@ Ryujinx_finalize(){
 }
 
 Ryujinx_IsInstalled(){
-    if [ -e "$Ryujinx_emuPath/Ryujinx" ]; then
+    local appimage
+    appimage=$(find "$emusFolder" -maxdepth 1 \( -iname "Ryujinx*.AppImage" -o -iname "ryujinx*.AppImage" \) -print -quit 2>/dev/null)
+    if [ -e "$Ryujinx_emuPath/Ryujinx" ] || [ -n "$appimage" ]; then
         echo "true"
     else
         echo "false"

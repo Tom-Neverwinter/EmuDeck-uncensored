@@ -28,6 +28,11 @@
             <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/yuzu.sh</entry>
         </rule>
     </emulator>
+    <emulator name="EDEN">
+        <rule type="staticpath">
+            <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/eden.sh</entry>
+        </rule>
+    </emulator>
     <emulator name="CEMU">
         <rule type="staticpath">
             <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/cemu.sh</entry>
