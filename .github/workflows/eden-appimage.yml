@@ -1,0 +1,63 @@
+name: Eden AppImage Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'functions/EmuScripts/emuDeckEden.sh'
+      - 'functions/installEmuAI.sh'
+      - 'tools/launchers/eden.sh'
+      - '.github/workflows/eden-appimage.yml'
+  pull_request:
+    paths:
+      - 'functions/EmuScripts/emuDeckEden.sh'
+      - 'functions/installEmuAI.sh'
+      - 'tools/launchers/eden.sh'
+      - '.github/workflows/eden-appimage.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-appimage:
+    name: Discover, download, and extract Eden
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate the current Steam Deck AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_page_url='https://git.eden-emu.dev/eden-ci/nightly/releases/'
+          release_page="$(curl --fail --location --silent --show-error "$release_page_url")"
+          clang_pattern='https://nightly\.eden-emu\.dev/[^"[:space:]]*/Eden-Linux-[^"[:space:]]*-steamdeck-clang-pgo\.AppImage'
+          gcc_pattern='https://nightly\.eden-emu\.dev/[^"[:space:]]*/Eden-Linux-[^"[:space:]]*-steamdeck-gcc-standard\.AppImage'
+
+          selected_url="$(grep -Eo "$clang_pattern" <<< "$release_page" | head -n 1 || true)"
+          selected_variant='clang-pgo'
+          if [[ -z "$selected_url" ]]; then
+            selected_url="$(grep -Eo "$gcc_pattern" <<< "$release_page" | head -n 1 || true)"
+            selected_variant='gcc-standard'
+          fi
+
+          [[ -n "$selected_url" ]]
+          file_name="$(basename "$selected_url")"
+          derived_version="$(sed -E 's/^Eden-Linux-([^-]+)-.*$/\1/' <<< "$file_name")"
+          [[ -n "$derived_version" && "$derived_version" != "$file_name" ]]
+
+          curl --fail --location --retry 2 --output Eden.AppImage "$selected_url"
+          [[ "$(file --brief Eden.AppImage)" == *ELF* ]]
+          [[ "$(xxd -p -l 12 Eden.AppImage)" == 7f454c46*41490200 ]]
+
+          chmod +x Eden.AppImage
+          ./Eden.AppImage --appimage-extract >/dev/null
+          [[ -x squashfs-root/AppRun ]]
+
+          echo "selected_variant=$selected_variant"
+          echo "selected_url=$selected_url"
+          echo "derived_version=$derived_version"
+          echo "downloaded_bytes=$(stat --format=%s Eden.AppImage)"
+          echo "sha256=$(sha256sum Eden.AppImage | awk '{print $1}')"
