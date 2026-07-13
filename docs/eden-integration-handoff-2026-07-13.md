@@ -80,6 +80,17 @@ behavior.
    backslashes for its `sed` match. A pre-existing default flag can therefore
    survive unchanged even though the caller believes it was updated.
 
+7. **Uninstall leaves a broken launcher and desktop entry.**
+   `Eden_uninstall` removes the parser and AppImage but not the deployed
+   launcher copies or `eden.desktop`. The remaining launcher looks for an
+   AppImage and then tries to run a matching Flatpak; after a normal AppImage
+   uninstall with no Flatpak installed, the surviving desktop entry fails.
+
+8. **Locale support is dormant.** `Eden_setLanguage` contains the mapping and
+   configuration logic, but `Eden_init` only contains a commented-out call.
+   Fresh setup therefore retains the template language and region rather than
+   applying the user's locale.
+
 ## Remaining edge cases
 
 1. Test first-time install and update paths against both Eden nightly artifact variants and release-page changes.
