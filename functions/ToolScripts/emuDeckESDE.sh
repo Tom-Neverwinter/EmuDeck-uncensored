@@ -91,7 +91,11 @@ ESDE_install(){
 	local esdeReleaseData=$(curl -fsSL "$ESDE_releaseJSON")
 
 	ESDE_releaseURL=$(echo "$esdeReleaseData" | jq -r '.stable.packages[] | select(.name == "LinuxSteamDeckAppImage") | .url')
-
+	
+	if [ $CPUarch == "arm" ]; then
+		ESDE_releaseURL=$(echo "$esdeReleaseData" | jq -r '.stable.packages[] | select(.name == "LinuxAArch64AppImage") | .url')
+	fi
+	
 	echo "$ESDE_releaseURL"
 	if [[ -n "$ESDE_releaseURL" ]]; then
 		if safeDownload "$ESDE_toolName" "$ESDE_releaseURL" "$ESDE_toolPath" "$showProgress"; then
@@ -523,6 +527,56 @@ ESDE_refreshCustomEmus(){
 	sed -i "s|/run/media/mmcblk0p1/Emulation|${emulationPath}|g" "$es_rulesFile"
 	ESDE_setDefaultEmulators
 }
+ESDE_ensureRyujinxFindRule(){
+	[ -f "$es_rulesFile" ] || return 0
+	grep -q 'name="RYUJINX"' "$es_rulesFile" && return 0
+	local ruleBlock="    <emulator name=\"RYUJINX\">\n        <rule type=\"staticpath\">\n            <entry>${toolsPath}/launchers/ryujinx.sh</entry>\n        </rule>\n    </emulator>"
+	sed -i "s|</ruleList>|${ruleBlock}\n</ruleList>|" "$es_rulesFile"
+}
+
+ESDE_ensureDolphinFindRule(){
+	[ -f "$es_rulesFile" ] || return 0
+	local launcher="${toolsPath}/launchers/dolphin-emu.sh"
+	grep -q "<entry>${launcher}</entry>" "$es_rulesFile" && return 0
+	if grep -q 'name="DOLPHIN"' "$es_rulesFile"; then
+		sed -i "/<emulator name=\"DOLPHIN\">/,/<\/emulator>/ s|<entry>.*</entry>|<entry>${launcher}</entry>|" "$es_rulesFile"
+	else
+		local ruleBlock="    <emulator name=\"DOLPHIN\">\n        <rule type=\"staticpath\">\n            <entry>${launcher}</entry>\n        </rule>\n    </emulator>"
+		sed -i "s|</ruleList>|${ruleBlock}\n</ruleList>|" "$es_rulesFile"
+	fi
+}
+
+ESDE_ensureCemuFindRule(){
+	[ -f "$es_rulesFile" ] || return 0
+	local launcher="${toolsPath}/launchers/cemu.sh"
+	grep -q "<entry>${launcher}</entry>" "$es_rulesFile" && return 0
+	if grep -q 'name="CEMU"' "$es_rulesFile"; then
+		sed -i "/<emulator name=\"CEMU\">/,/<\/emulator>/ s|<entry>.*</entry>|<entry>${launcher}</entry>|" "$es_rulesFile"
+	else
+		local ruleBlock="    <emulator name=\"CEMU\">\n        <rule type=\"staticpath\">\n            <entry>${launcher}</entry>\n        </rule>\n    </emulator>"
+		sed -i "s|</ruleList>|${ruleBlock}\n</ruleList>|" "$es_rulesFile"
+	fi
+}
+
+ESDE_ensureSystemsPath(){
+	[ -f "$es_systemsFile" ] || return 0
+	grep -q '/run/media/mmcblk0p1/Emulation' "$es_systemsFile" || return 0
+	[ "$emulationPath" = "/run/media/mmcblk0p1/Emulation" ] && return 0
+	sed -i "s|/run/media/mmcblk0p1/Emulation|${emulationPath}|g" "$es_systemsFile"
+}
+
+ESDE_ensurePS3Emulators(){
+	local ps3Roms="$romsPath/ps3"
+	local gamelist="$ESDE_newConfigDirectory/gamelists/ps3/gamelist.xml"
+	[ -d "$ps3Roms" ] || return 0
+	PS3_ROMS_DIR="$ps3Roms" PS3_GAMELIST="$gamelist" python3 "$emudeckBackend/tools/esdePS3Emulators.py" >/dev/null 2>&1
+}
+
 esde_launch_fixes(){
 	ryujinx_launch_fixes
+	ESDE_ensureRyujinxFindRule
+	ESDE_ensureDolphinFindRule
+	ESDE_ensureCemuFindRule
+	ESDE_ensureSystemsPath
+	ESDE_ensurePS3Emulators
 }

@@ -8,9 +8,14 @@
             <entry>sh</entry>
         </rule>
     </emulator>
+    <emulator name="CEMU">
+        <rule type="staticpath">
+            <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/cemu.sh</entry>
+        </rule>
+    </emulator>
     <emulator name="DOLPHIN">
         <rule type="staticpath">
-            <entry>~/.local/share/flatpak/exports/bin/org.DolphinEmu.dolphin-emu</entry>
+            <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/dolphin-emu.sh</entry>
         </rule>
     </emulator>
     <emulator name="RETROARCH">
@@ -65,6 +70,11 @@
             <entry>~/bin/yuzu*.AppImage</entry>
             <entry>/var/lib/flatpak/exports/bin/org.yuzu_emu.yuzu</entry>
             <entry>~/.local/share/flatpak/exports/bin/org.yuzu_emu.yuzu</entry>
+        </rule>
+    </emulator>
+    <emulator name="RYUJINX">
+        <rule type="staticpath">
+            <entry>/run/media/mmcblk0p1/Emulation/tools/launchers/ryujinx.sh</entry>
         </rule>
     </emulator>
     <emulator name="EDEN">

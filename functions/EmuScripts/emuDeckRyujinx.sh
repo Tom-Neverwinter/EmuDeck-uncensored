@@ -56,11 +56,15 @@ Ryujinx_install(){
     local lastVerFile="$emudeckFolder/ryujinx.ver"
 
     releaseData=$(curl -fsSL -H "User-Agent: EmuDeck" "$Ryujinx_releaseAPI") || return 1
-    url=$(echo "$releaseData" | jq -r '.assets[] | select(.browser_download_url | test("linux_x64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+    if [ $CPUarch == "arm" ]; then
+        url=$(echo "$releaseData" | jq -r '.assets[] | select(.browser_download_url | test("linux_arm64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+    else
+        url=$(echo "$releaseData" | jq -r '.assets[] | select(.browser_download_url | test("linux_x64\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
+    fi
     latestVer=$(echo "$releaseData" | jq -r '.tag_name // empty')
 
     if [[ -z "$url" || "$url" == "null" ]]; then
-        echo "Could not find a Ryujinx Canary Linux x64 tarball in $Ryujinx_releaseAPI"
+        echo "Could not find a Ryujinx Canary Linux tarball in $Ryujinx_releaseAPI"
         return 1
     fi
 
@@ -94,7 +98,9 @@ Ryujinx_init(){
 	fi
 
     Ryujinx_setLanguage
-    
+
+    Ryujinx_ensureGyroDSU
+
     Ryujinx_set_gamepad_name
 
 }
@@ -376,89 +382,82 @@ Ryujinx_flushEmulatorLauncher(){
 }
 
 
-Ryujinx_getFirstGamepad(){
+Ryujinx_findSdlLib(){
     local sdlLib
     for sdlLib in "$Ryujinx_emuPath/libSDL3.so" /usr/lib/libSDL3.so /usr/lib/libSDL3.so.0 /usr/lib64/libSDL3.so; do
-        [ -f "$sdlLib" ] && break
-        sdlLib=""
+        [ -f "$sdlLib" ] && { echo "$sdlLib"; return 0; }
     done
-    [ -n "$sdlLib" ] || { echo "libSDL3 not found" >&2; return 1; }
+    return 1
+}
+
+Ryujinx_gamepadCount(){
+    local sdlLib
+    sdlLib="$(Ryujinx_findSdlLib)" || { echo 0; return 0; }
+    command -v python3 >/dev/null 2>&1 || { echo 0; return 0; }
+    SDL_LIB="$sdlLib" python3 "$emudeckBackend/tools/gamepads/ryujinxGamepads.py" --count 2>/dev/null || echo 0
+}
+
+Ryujinx_getOrderedGamepads(){
+    local sdlLib
+    sdlLib="$(Ryujinx_findSdlLib)" || { echo "libSDL3 not found" >&2; return 1; }
     command -v python3 >/dev/null 2>&1 || { echo "python3 not found" >&2; return 1; }
 
-    SDL_LIB="$sdlLib" python3 -c '
-import ctypes, os, sys
-
-sdl = ctypes.CDLL(os.environ["SDL_LIB"])
-
-class GUID(ctypes.Structure):
-    _fields_ = [("data", ctypes.c_uint8 * 16)]
-
-sdl.SDL_Init.argtypes = [ctypes.c_uint32]
-sdl.SDL_Init.restype = ctypes.c_bool
-sdl.SDL_GetGamepads.argtypes = [ctypes.POINTER(ctypes.c_int)]
-sdl.SDL_GetGamepads.restype = ctypes.POINTER(ctypes.c_uint32)
-#GetJoystickNameForID, not GetGamepadNameForID: for Steam Input virtual pads the
-#latter returns "Steam Virtual Gamepad" while the former (like Ryujinx) resolves
-#to the physical controller name Steam publishes in virtualgamepadinfo.txt.
-sdl.SDL_GetJoystickNameForID.argtypes = [ctypes.c_uint32]
-sdl.SDL_GetJoystickNameForID.restype = ctypes.c_char_p
-sdl.SDL_GetJoystickGUIDForID.argtypes = [ctypes.c_uint32]
-sdl.SDL_GetJoystickGUIDForID.restype = GUID
-sdl.SDL_GetError.restype = ctypes.c_char_p
-
-SDL_INIT_GAMEPAD = 0x00002000
-if not sdl.SDL_Init(SDL_INIT_GAMEPAD):
-    sys.stderr.write("SDL_Init failed: %s\n" % sdl.SDL_GetError().decode())
-    sys.exit(1)
-
-count = ctypes.c_int(0)
-ids = sdl.SDL_GetGamepads(ctypes.byref(count))
-if count.value < 1:
-    sdl.SDL_Quit()
-    sys.exit(1)
-
-jid = ids[0]
-b = bytes(sdl.SDL_GetJoystickGUIDForID(jid).data)
-name = sdl.SDL_GetJoystickNameForID(jid)
-name = name.decode() if name else "Unknown Controller"
-sdl.SDL_Quit()
-
-# Mirrors Ryujinx SDL3GamepadDriver.SDLGuidToString + GenerateGamepadId:
-#   guid   = b2 b3 b1 b0 - b5 b4 - b6 b7 - b8 b9 - b10..b15
-#   guid   = "0000" + guid[4:]   <- it zeroes the CRC field to keep the id stable
-#   id     = "<n>-<guid>", n starting at 0 and only bumped on duplicates
-h = lambda i: "%02x" % b[i]
-guid = "0000" + h(1) + h(0) + "-" + h(5) + h(4) + "-" + h(6) + h(7) + "-" + \
-       h(8) + h(9) + "-" + "".join("%02x" % x for x in b[10:16])
-
-print("0-%s|%s" % (guid, name))
-'
+    SDL_LIB="$sdlLib" python3 "$emudeckBackend/tools/gamepads/ryujinxGamepads.py"
 }
 
 Ryujinx_set_gamepad_name() {
-  local gamepad id name tmp
+  
+  if [ "$(getProductName)" == "Jupiter" ] || [ "$(getProductName)" == "Galileo" ]; then
+      return 0
+  fi
+  
+  if [ "${autoMap}" == "false" ]; then
+    return 0
+  fi
+  
+  if [ "$controllerLayout" == "bayx" ] || [ "$controllerLayout" == "baxy" ] ; then
+    Ryujinx_setBAYXstyle
+  else
+    Ryujinx_setABXYstyle
+  fi
+  
+  if [ "$(Ryujinx_gamepadCount)" -gt 1 ] 2>/dev/null; then
+      export SDL_GAMECONTROLLER_IGNORE_DEVICES="0x28de/0x11ff"
+      export SDL_JOYSTICK_IGNORE_DEVICES="0x28de/0x11ff"
+  fi
+  
+  local pads tmp
 
-  gamepad="$(Ryujinx_getFirstGamepad)" || { echo "No controller detected, keeping default input config" >&2; return 1; }
+  pads="$(Ryujinx_getOrderedGamepads)" || { echo "No controller detected, keeping default input config" >&2; return 1; }
+  { [ -n "$pads" ] && [ "$pads" != "[]" ]; } || { echo "Could not read gamepads" >&2; return 1; }
 
-  id="${gamepad%%|*}"
-  name="${gamepad#*|}"
-  { [ -n "$id" ] && [ -n "$name" ]; } || { echo "Could not read gamepad id/name" >&2; return 1; }
-
-  echo "Detected gamepad: ${name} -> ${id}"
+  echo "Detected gamepads: $(echo "$pads" | jq -c '[.[] | {player, name}]')"
 
   tmp="$(mktemp)"
-  if jq --arg id "$id" --arg name "${name} (0)" '
-      (.input_config | map((.backend // "") | startswith("Gamepad")) | index(true)) as $i
-      | if $i == null then
-          error("no gamepad entry in input_config")
-        else
-          .input_config[$i].id = $id | .input_config[$i].name = $name
-        end' "$Ryujinx_configFile" > "$tmp" && [ -s "$tmp" ]; then
+  if jq --argjson pads "$pads" '
+      ([.input_config[]? | select((.backend // "") | startswith("Gamepad"))][0] // .input_config[0]) as $tmpl
+      | if $tmpl == null then error("no gamepad entry in input_config") else . end
+      | .input_config = [ $pads[] | $tmpl + {
+            player_index: .player,
+            id: .id,
+            name: .name,
+            backend: (if (($tmpl.backend // "") | startswith("Gamepad")) then $tmpl.backend else "GamepadSDL3" end)
+          } ]' "$Ryujinx_configFile" > "$tmp" && [ -s "$tmp" ]; then
     mv "$tmp" "$Ryujinx_configFile"
   else
     rm -f "$tmp"
     echo "No gamepad entry to update in $Ryujinx_configFile" >&2
     return 1
+  fi
+
+  if [ "$(echo "$pads" | jq 'length')" = "1" ] \
+     && echo "$pads" | jq -e '(.[0].name // "") | ascii_downcase | contains("steam deck")' >/dev/null 2>&1; then
+    tmp="$(mktemp)"
+    if jq '.input_config[0].motion = {"slot":0,"alt_slot":0,"mirror_input":false,"dsu_server_host":"127.0.0.1","dsu_server_port":26760,"motion_backend":"CemuHook","sensitivity":100,"gyro_deadzone":1,"enable_motion":true}' "$Ryujinx_configFile" > "$tmp" && [ -s "$tmp" ]; then
+      mv "$tmp" "$Ryujinx_configFile"
+    else
+      rm -f "$tmp"
+    fi
   fi
 }
 
@@ -504,10 +503,18 @@ Ryujinx_migrateToSDL3() {
   return 0
 }
 
+Ryujinx_ensureGyroDSU(){
+    case "$(getProductName)" in Jupiter|Galileo) ;; *) return 0 ;; esac
+    [ -f "$HOME/sdgyrodsu/sdgyrodsu" ] && return 0
+    Plugins_installSteamDeckGyroDSU
+}
+
 ryujinx_launch_fixes(){
     if [ "$(Ryujinx_IsInstalled)" == "true" ] \
        && jq -e '[.input_config[]? | .backend? // ""] | any(startswith("GamepadSDL2"))' "$Ryujinx_configFile" >/dev/null 2>&1; then
         Ryujinx_migrateToSDL3
     fi
+    Ryujinx_ensureGyroDSU
+
     Ryujinx_set_gamepad_name
 }

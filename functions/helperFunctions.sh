@@ -86,10 +86,12 @@ function escapeSedValue(){
 	printf '%s\n' "$INPUT" | sed -e 's/[\/&]/\\&/g'
 }
 
-function getSDPath(){
-	if [ -b "/dev/mmcblk0p1" ]; then
-		findmnt -n --raw --evaluate --output=target -S /dev/mmcblk0p1
-	fi
+function getSDPath() {
+	for dev in /dev/sd*1 /dev/mmcblk*p1; do
+		if [ -b "$dev" ]; then
+			findmnt -n --raw --evaluate --output=target -S "$dev"
+		fi
+	done
 }
 
 function getProductName(){
@@ -1207,6 +1209,7 @@ function storePatreonToken(){
 
 
 function controllerLayout_ABXY(){
+	setSetting controllerLayout "abxy"
 	Cemu_setABXYstyle
 	Azahar_setABXYstyle
 	Dolphin_setABXYstyle
@@ -1219,6 +1222,7 @@ function controllerLayout_ABXY(){
 }
 
 function controllerLayout_BAYX(){
+	setSetting controllerLayout "baxy"
 	Cemu_setBAYXstyle
  	Dolphin_setBAYXstyle
 	Azahar_setBAYXstyle
@@ -1437,7 +1441,58 @@ update_launchers(){
 	  echo "Overwriting $dst from $src"
 	  cp -v "$src" "$dst"
 	else
-	  echo "⚠️  No source found for $rel, saltando"
+	  echo "No source found for $rel"
 	fi
   done
+
+  local roms_dir="${romsPath}/emulators"
+  if [ -d "$roms_dir" ]; then
+    find "$roms_dir" -maxdepth 1 -type f -name '*.sh' | while read -r dst; do
+      base="$(basename "$dst")"
+      src="$(find "$src_dir" -type f -name "$base" | head -n 1)"
+      if [ -n "$src" ]; then
+        echo "Overwriting $dst from $src"
+        cp -v "$src" "$dst"
+        chmod +x "$dst"
+      else
+        echo "No source found for $base"
+      fi
+    done
+  fi
+}
+
+ra_get_credentials() {
+		
+	achievementsUser=""
+	achievementsUserToken=""
+	achievementsHardcore="false"
+	if [ -f "$emudeckFolder/settings.json" ]; then
+		achievementsUser=$(jq -r '.achievements.user // ""' "$emudeckFolder/settings.json")
+		achievementsUserToken=$(jq -r '.achievements.token // ""' "$emudeckFolder/settings.json")
+		achievementsHardcore=$(jq -r '.achievements.hardcore // false' "$emudeckFolder/settings.json")
+	fi
+}
+
+retroAchievementsLogin(){
+	RetroArch_retroAchievementsSetLogin
+	DuckStation_retroAchievementsSetLogin
+	PCSX2QT_retroAchievementsSetLogin
+	PPSSPP_retroAchievementsSetLogin
+	Dolphin_retroAchievementsSetLogin
+}
+
+retroAchievementsHardCoreOn(){
+	RetroArch_retroAchievementsHardCoreOn
+	DuckStation_retroAchievementsHardCoreOn
+	PCSX2QT_retroAchievementsHardCoreOn
+	PPSSPP_retroAchievementsHardCoreOn
+	Dolphin_retroAchievementsHardCoreOn
+}
+
+retroAchievementsHardCoreOff(){
+	RetroArch_retroAchievementsHardCoreOff
+	DuckStation_retroAchievementsHardCoreOff
+	PCSX2QT_retroAchievementsHardCoreOff
+	PPSSPP_retroAchievementsHardCoreOff
+	Dolphin_retroAchievementsHardCoreOff
 }

@@ -6,7 +6,69 @@ Dolphin_emuPath="org.DolphinEmu.dolphin-emu"
 Dolphin_configFile="$HOME/.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu/Dolphin.ini"
 Dolphin_configFileGFX="$HOME/.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu/GFX.ini"
 Dolphin_gamecubeFile="$HOME/.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu/GCPadNew.ini"
+Dolphin_cheevosConfigFile="$HOME/.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu/RetroAchievements.ini"
 Dolphin_releaseURL=""
+
+#RetroAchievements
+Dolphin_ensureCheevosConfig(){
+	# Dolphin guarda los logros en RetroAchievements.ini. Si no existe, lo creamos con los valores por defecto.
+	if [ ! -f "$Dolphin_cheevosConfigFile" ]; then
+		mkdir -p "$(dirname "$Dolphin_cheevosConfigFile")"
+		cat > "$Dolphin_cheevosConfigFile" <<-EOF
+		[Achievements]
+		ChallengeIndicatorsEnabled = True
+		DiscordPresenceEnabled = False
+		Enabled = False
+		EncoreEnabled = False
+		HardcoreEnabled = False
+		LeaderboardTrackerEnabled = True
+		ProgressEnabled = False
+		SpectatorEnabled = False
+		UnofficialEnabled = False
+		Username =
+		ApiToken =
+		EOF
+	fi
+}
+Dolphin_retroAchievementsOn(){
+	iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "Enabled" "True"
+}
+Dolphin_retroAchievementsOff(){
+	iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "Enabled" "False"
+}
+Dolphin_retroAchievementsHardCoreOn(){
+	Dolphin_ensureCheevosConfig
+	iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "HardcoreEnabled" "True"
+}
+Dolphin_retroAchievementsHardCoreOff(){
+	Dolphin_ensureCheevosConfig
+	iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "HardcoreEnabled" "False"
+}
+Dolphin_retroAchievementsSetLogin(){
+	Dolphin_ensureCheevosConfig
+	ra_get_credentials
+	rau="$achievementsUser"
+	rat="$achievementsUserToken"
+	echo "Evaluate RetroAchievements Login."
+	if [ ${#rat} -lt 1 ]; then
+		echo "--No token."
+	elif [ ${#rau} -lt 1 ]; then
+		echo "--No username."
+	else
+		echo "Valid Retroachievements Username and Password length"
+		iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "Username" "$rau"
+		iniFieldUpdate "$Dolphin_cheevosConfigFile" "Achievements" "ApiToken" "$rat"
+		Dolphin_retroAchievementsOn
+	fi
+}
+Dolphin_setRetroAchievements(){
+	Dolphin_retroAchievementsSetLogin
+	if [ "$achievementsHardcore" == "true" ]; then
+		Dolphin_retroAchievementsHardCoreOn
+	else
+		Dolphin_retroAchievementsHardCoreOff
+	fi
+}
 
 #cleanupOlderThings
 Dolphin_cleanup(){
@@ -48,12 +110,19 @@ Dolphin_init(){
 	Dolphin_setupStorage
 	Dolphin_setEmulationFolder
 	Dolphin_setupSaves
-  Dolphin_cleanup
-  Dolphin_setCustomizations
-  Dolphin_flushEmulatorLauncher
-  Dolphin_flushSymlinks
+    Dolphin_cleanup
+    Dolphin_setCustomizations
+    Dolphin_setRetroAchievements
+    Dolphin_flushEmulatorLauncher
+    Dolphin_flushSymlinks
 	#SRM_createParsers
     #Dolphin_DynamicInputTextures
+    
+    if [ "$controllerLayout" == "bayx" ] || [ "$controllerLayout" == "baxy" ] ; then
+      Dolphin_setBAYXstyle
+    else
+      Dolphin_setABXYstyle
+    fi
 }
 
 #update
@@ -114,20 +183,28 @@ Dolphin_uninstall(){
 }
 
 #setABXYstyle
+#A = A in controller
 Dolphin_setABXYstyle(){
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/A = `Button S`|Buttons/A = `Button S`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/B = `Button W`|Buttons/B = `Button E`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/X = `Button E`|Buttons/X = `Button W`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/Y = `Button N`|Buttons/Y = `Button N`|' $Dolphin_gamecubeFile
-
+   	sed -i 's|Buttons/A = `Button E`|Buttons/A = `Button S`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/B = `Button S`|Buttons/B = `Button E`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/X = `Button N`|Buttons/X = `Button W`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/Y = `Button W`|Buttons/Y = `Button N`|' "$Dolphin_gamecubeFile"
 }
-
+#A = B in controller
 Dolphin_setBAYXstyle(){
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/A = `Button S`|Buttons/A = `Button S`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/B = `Button E`|Buttons/B = `Button W`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/X = `Button W`|Buttons/X = `Button E`|' $Dolphin_gamecubeFile
-   	sed -i '/^\[GCPad1\]/,/^\[/ s|Buttons/Y = `Button N`|Buttons/Y = `Button N`|' $Dolphin_gamecubeFile
+   	sed -i 's|Buttons/A = `Button S`|Buttons/A = `Button E`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/B = `Button E`|Buttons/B = `Button S`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/X = `Button W`|Buttons/X = `Button N`|' "$Dolphin_gamecubeFile"
+   	sed -i 's|Buttons/Y = `Button N`|Buttons/Y = `Button W`|' "$Dolphin_gamecubeFile"
 }
+
+# 
+# Buttons/A = `Button E`
+# Buttons/B = `Button S`
+# Buttons/X = `Button N`
+# Buttons/Y = `Button W`
+
+
 
 #Migrate
 Dolphin_migrate(){
@@ -180,6 +257,40 @@ Dolphin_resetConfig(){
 #finalExec - Extra stuff
 Dolphin_finalize(){
 	echo "NYI"
+}
+
+Dolphin_setGamepads(){
+  
+    if [ "$(getProductName)" == "Jupiter" ] || [ "$(getProductName)" == "Galileo" ]; then
+        return 0
+    fi
+  
+	if [ "${autoMap}" == "false" ]; then
+		return 0
+	fi
+    cp "$emudeckBackend/configs/org.DolphinEmu.dolphin-emu/config/dolphin-emu/GCPadNew.ini" $Dolphin_gamecubeFile
+    
+    if [ "$controllerLayout" == "bayx" ] || [ "$controllerLayout" == "baxy" ] ; then
+      Dolphin_setBAYXstyle
+    else
+      Dolphin_setABXYstyle
+    fi
+    
+	local configDir="$HOME/.var/app/${Dolphin_emuPath}/config/dolphin-emu"
+	[ -d "$configDir" ] || return 0
+	flatpak run --command=sh --filesystem=home "${Dolphin_emuPath}" -c '
+		for lib in /usr/lib/x86_64-linux-gnu/libSDL3.so.0 /app/lib/libSDL3.so.0 /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0; do
+			[ -f "$lib" ] || continue
+			SDL_LIB="$lib" DOLPHIN_CONFIG_DIR="$XDG_CONFIG_HOME/dolphin-emu" \
+				python3 "'"${emudeckBackend}"'/tools/gamepads/dolphinGamepads.py" --write
+			exit $?
+		done
+		exit 1
+	' >/dev/null 2>&1
+}
+
+dolphin_launch_fixes(){
+	Dolphin_setGamepads
 }
 
 

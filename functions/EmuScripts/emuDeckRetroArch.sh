@@ -13,6 +13,11 @@ RetroArch_overlaysPath="~/.var/app/org.libretro.RetroArch/config/retroarch/overl
 RetroArch_videoPath="/app/lib/retroarch/filters/video"
 
 RetroArch_coresURL="https://buildbot.libretro.com/nightly/linux/x86_64/latest/"
+
+if [ $CPUarch == "arm" ]; then
+	RetroArch_coresURL="https://buildbot.libretro.com/nightly/linux/aarch64/latest/"
+fi
+
 RetroArch_coresExtension="so.zip"
 RetroArch_assetsURL="https://buildbot.libretro.com/assets/frontend/assets.zip"
 RetroArch_shaderscgURL="https://buildbot.libretro.com/assets/frontend/shaders_cg.zip"
@@ -2462,9 +2467,9 @@ RetroArch_retroAchievementsPromptLogin(){
 	fi
 }
 RetroArch_retroAchievementsSetLogin(){
-	rm -rf "$emudeckFolder/.rap"
-	rau=$(cat "$emudeckFolder/.rau")
-	rat=$(cat "$emudeckFolder/.rat")
+	ra_get_credentials
+	rau="$achievementsUser"
+	rat="$achievementsUserToken"
 	echo "Evaluate RetroAchievements Login."
 	if [ ${#rat} -lt 1 ]; then
 		echo "--No token."
