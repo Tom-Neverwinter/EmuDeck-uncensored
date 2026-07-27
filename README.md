@@ -7,9 +7,27 @@ EmuDeck is a collection of scripts that allows you to autoconfigure your Steam D
 
 Ready to switch it up and go full Steam ahead, with handheld-friendly defaults and room for the whole couch to join in.
 
+### A note on Switch emulation and Nintendo's patents
+
+You may notice Switch emulators in this space have a habit of disappearing, getting renamed, or changing hands (Yuzu, Ryujinx, Citra → Lime3DS...). Nintendo has leaned on patents as part of that pressure, not just copyright/DMCA claims. Whether those patents actually read on how these emulators work is genuinely contested — a fair number of engineers and IP lawyers who've looked at them think they're broad, of debatable validity, or asserted more as a deterrent than because of an airtight infringement case. We're not going to pretend we have a definitive legal opinion here.
+
+Writing and distributing emulator software is legal; what you dump, download, or run through it is a separate question that's on you. This fork keeps community-maintained Switch emulators (like Eden) configured on that basis.
+
+(Also, for the record: our balls are round, thrown underhand, and only good for catching bugs in the tracker — no meter in the corner of the screen telling you the odds first. And renaming one a "Spherical Capture Apparatus" wouldn't save us anyway — patents cover what a thing does, not what you call it. That's trademark's job.)
+
+### What this fork adds
+
+Beyond stock EmuDeck, this fork adds:
+
+- **Eden support** — a nightly, Steam Deck-optimized AppImage installer for [Eden](https://git.eden-emu.dev) with version tracking, so updates only re-download when there's actually a new build.
+- **Shared Switch storage** across Eden, Citron, and Ryujinx — one common data folder instead of each emulator keeping its own separate copy.
+- **Eden set as the default Switch emulator** in ES-DE automatically once it's installed (falls back to Ryujinx otherwise), plus its own SRM parser, find rules, and BIOS check.
+- **ABXY/BAYX controller layout switching and full uninstall support** for Eden, matching what the other standalone emulators already had.
+- **Version-tracked Ryujinx installs** so it also only re-downloads Canary builds when a newer tag is actually out.
+
 ## How to use EmuDeck?
 
-We recomend you take a look at our extensive Wiki, you'll find guides, videos and all sorts of content about the project:
+We recommend you take a look at our extensive Wiki, you'll find guides, videos and all sorts of content about the project:
 
 [EmuDeck Wiki](https://emudeck.github.io/how-to-install-emudeck/steamos/)
 
